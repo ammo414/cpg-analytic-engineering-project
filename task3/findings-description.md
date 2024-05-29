@@ -33,7 +33,7 @@ print(ReceiptItemList)
 As I described in task 1, there is no guarantee that ths is the full set of keys over all the data, but for the sake of this exercise I am operating under the assumption that it is. While I was able to document the names of the headers, I still do not know what some of them represent. For example, `deleted` or `pointsPayerId` is a little ambigious. I would need someone with domain knowledge to fill in those gaps for me.
 
 ## Duplicate data? barcode vs originalMetaBarcode
-Within receipts[ReceiptItemList], there are two keys that seems similar at first glance: `barcode` and `originalMetaBriteBarcode`. Manually going through the JSON, it seemed like if there was an `originalMetaBriteBarcode`, then it was the same as `barcode`. I figured that, even if the two barcodes aren't the same for a given item, if there is a one to one relationship between barcodes and MetaBriteBarcodes, then we can consider MetaBriteBarcodes duplicate data and store is elsewhere. I wrote the following Python script to see if that was true:
+Within receipts[ReceiptItemList], there are two keys that seems similar at first glance: `barcode` and `originalMetaBriteBarcode`. Manually going through the JSON, it seemed like if there was an `originalMetaBriteBarcode`, then it was the same as `barcode`. I figured that, even if the two barcodes aren't the same for a given item, if there is a one to one relationship between barcodes and MetaBriteBarcodes, then we can consider MetaBriteBarcodes duplicate data and store it elsewhere. If we can do that, then there would be many fewer writes on ReceiptItems whenever we load data, greatly increasing performance of our loads. I wrote the following Python script to see if that was true:
 
 ```python
 import json
