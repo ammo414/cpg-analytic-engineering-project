@@ -193,15 +193,16 @@ with open('users.json') as users_data:
 usersLoad = json.loads(json.dumps(data))  # python can't handle multiple objects at once normally. this is a quick workaround
 
 for x in usersLoad:
-    createdDate = 0
-    lastLogin = 0
+    createdDate = None
+    lastLogin = None
     for key in x:
         if key == 'createdDate':
-            createdDate = x[key]
+            createdDate = x[key]['$date']
         if key == 'lastLogin':
-            lastLogin = x[key]
-    if lastlogin - createdDate < 0:
-        print(x['_id'])
+            lastLogin = x[key]['$date']
+    if createdDate is not None and lastLogin is not None:
+        if lastLogin - createdDate < 0:
+            print(x['_id'])
 ```
 
 This gets the integers representing last login and created Date, and if a user's last login is smaller than created Date, then it prints the ID of that user. Nothing was printed out, which means we are in the clear.
