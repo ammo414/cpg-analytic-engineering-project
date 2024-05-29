@@ -187,7 +187,7 @@ for x in receiptsLoad:
             print(errorString + key)
 ```
 
-Pretty much everything looks good here so I'm not going to harp on anything, but like I mentioned in task 1, I'm not sure if data points like 'totalSpent' or 'pointsEarned' should remain as strings/varchars or if they should be converted to numerics. 
+Pretty much everything looks good here so I'm not going to harp on anything for too long, but like I mentioned in task 1, I'm not sure if data points like `totalSpent` or `pointsEarned` should remain as strings/varchars or if they should be converted to numerics. 
 
 # Concerns with Brands
 ## There are a lot of test brands
