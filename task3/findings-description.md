@@ -144,6 +144,51 @@ grep -E '"\$date":[0123456789]{13}' -o receipts.json | grep -E [0123456789]{10} 
 
 With that `receiptsEpochTime`, I'm able to quickly `grep` for any year I want to search for, say 2020, with a `grep '2020' receiptsEpochTime`. I've confirmed that all dates are within 2017 and 2021, although there are very few 2017s compared to the rest.
 
+
+## Values are correctly typed and incoming keys are correctly formatted
+An issue I've seen before are values being a number of different data types, and formatting issues or typos with keys. Both can be checked at once with the following Python code:
+
+```Python
+# ensure headers are correctly formatted and values are correctly typed
+receipts_headers = {'_id': str,
+                    'bonusPointsEarned': int,
+                    'bonusPointsEarnedReason': str,
+                    'createDate': int,
+                    'dateScanned': int,
+                    'finishedDate': int,
+                    'modifyDate': int,
+                    'pointsAwardedDate': int,
+                    'pointsEarned': int,
+                    'purchaseDate': int,
+                    'purchasedItemCount': int,
+                    'rewardsReceiptItemList': list,
+                    'rewardsReceiptStatus': str,
+                    'totalSpent': float,
+                    'userId': str}
+
+errorString = 'type error with '
+
+for x in receiptsLoad:
+    for key in x:
+        if key not in receipts_headers:
+            print('unexpected header')
+        if key == '_id':
+            if type(x[key]['$oid']) is not str:
+                print(errorString + key)
+        elif 'DATE' in key.upper():
+            if type(x[key]['$date']) is not int:
+                print(errorString + key)
+        elif key == 'totalSpent' or key == 'pointsEarned':
+            try:
+                i = float(x[key])  # today I learned why decimals are stored as strings in JSON!
+            except ValueError:
+                print(errorString + key)
+        elif type(x[key]) is not receipts_headers[key]:
+            print(errorString + key)
+```
+
+Pretty much everything looks good here so I'm not going to harp on anything, but like I mentioned in task 1, I'm not sure if data points like 'totalSpent' or 'pointsEarned' should remain as strings/varchars or if they should be converted to numerics. 
+
 # Concerns with Brands
 ## There are a lot of test brands
 Looking manually at the JSON, we're immediately greeted with the word "test" everywhere on the screen, which seems wrong. We can find the total line count of the file with a `wc -l brands.json` and see that there are 1167 lines, and so, assuming one brand per line, that there are 1167 brands in the file. If we do a very naive search and line count of just the phrase 'test brand', using `grep 'test brand' brands.json | wc -l`, we get 428 results. That means that at least a third of our brands are test brands. While such data can be useful in testing and development situations, it shouldn't be entering production. Until we've investigated where this data is coming from, I would not load this data into a data warehouse.
