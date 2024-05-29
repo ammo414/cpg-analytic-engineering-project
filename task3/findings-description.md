@@ -172,7 +172,7 @@ The following truncated snippet shows that we have a number of fetch staff in th
 The data description contradicts what is actually going on in the data, which means that either the schema description needs to be updated or the data is wrong. We would need to talk to business to determine which is the case, but it wouldn't be too hard of a fix either way. If the data is wrong, we would simply need to filter by role before loading this data into the warehouse. If the description is wrong, we need to document all possible values of `role`.
 
 
-## The dates are still good, and I'm still glad I checked.
+## The dates are still good, and I'm still glad I checked
 There are two date-related things that I can potentially see go wrong here. The first is the same as what we checked in Receipts: are there any weird dates in the file? The second is whether any 'lastLogin' are before the 'created-Date'. Both are easy enough to check for.
 
 We can reuse my bash one-liner on this file and similarly grep for any weird years:
