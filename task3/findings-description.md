@@ -1,5 +1,140 @@
 Below are the data quality concerns that I've found with the given JSON files. I've also included some things that I thought might be a concern but turned out weren't. All research was done with either Bash or Python run on the JSON files themselves -- I did not transform the data at this point. My code is inserted below and also uploaded in this directory. The other .md in this directory, findings-email.md, will have the results formatted and described for a product or business leader not familiar with my work.
 
+
+# Sparsely Populated Joinable Keys
+
+## Barcodes
+As part of the schema that I desgined, I decided to join Brands[barcode] to Receipts[rewardsReceiptItemList][barcode]. While that makes sense conceptually, it remains to be seen if the barcodes actually match up often for this to be a meaningful join once we load this data into a database. I wrote the following python script to confirm.
+
+```Python
+import json
+
+
+def load_data(filename):
+    data = []
+    with open(filename) as receipts_data:
+        for line in receipts_data:
+            data.append(json.loads(line))
+    return json.loads(json.dumps(data))  # python can't handle multiple objects at once normally.
+    # this is a quick workaround
+
+def joining_on_barcodes(receiptsLoad, brandsLoad):
+    RIBarCodesJoinable = set()
+    RIBarCodesTotal = set()
+    for r in receiptsLoad:
+        if 'rewardsReceiptItemList' in r:
+            for ri in r['rewardsReceiptItemList']:
+                try:
+                    receiptsBC = ri['barcode']
+                    RIBarCodesTotal.add(receiptsBC)
+                except KeyError:
+                    receiptsBC = None
+            for b in brandsLoad: #n^2, maybe we can do something better here?
+                try:
+                    brandBC = b['barcode']
+                    if receiptsBC == brandBC:
+                        RIBarCodesJoinable.add(receiptsBC)
+                        break
+                except KeyError:
+                    brandBC = None
+
+    print(len(RIBarCodesJoinable))
+    print(len(RIBarCodesTotal))
+
+    BBarCodesJoinable = set()
+    BBarCodesTotal = set()
+    for b in brandsLoad:
+        try:
+            brandBC = b['barcode']
+            BBarCodesTotal.add(brandBC)
+        except KeyError:
+            brandBC = None
+        for r in receiptsLoad:
+            if 'rewardsReceiptItemList' in r:
+                for ri in r['rewardsReceiptItemList']:
+                    try:
+                        receiptsBC = ri['barcode']
+                        if brandBC == receiptsBC:
+                            BBarCodesJoinable.add(brandBC)
+                            break
+                    except KeyError:
+                        receiptsBC = None
+
+    print(len(BBarCodesJoinable))
+    print(len(BBarCodesTotal))
+
+#output:
+# 0
+# 568
+# 16
+# 1160
+```
+Of the 568 unique barcodes present in receipts.json, none of them can be joined on, and likewise only 16 out of 1160 barcodes present in brands.json can be joined on. As I show later on, this is likely because most of brands.json is test data rather than real data, which naturally means it won't be related to the real data that is present in receipts.json. However, this issue does make validation at this point in time difficult, as for example SQL queries related to brands data will fail to give any meaningful results. Its worth noting that there are 7 duplicate barcodes in brands.json, but again since this data is so bad I don't think further research is going to be particularly helpful until we can figure out what is going on with brands.json as a whole. 
+
+## userIDs and duplicate data
+A similar script can be run on receipts.userId and users._id:
+
+```python
+
+import json
+
+# load receipts data
+def load_data(filename):
+    data = []
+    with open(filename) as receipts_data:
+        for line in receipts_data:
+            data.append(json.loads(line))
+    return json.loads(json.dumps(data))  # python can't handle multiple objects at once normally.
+    # this is a quick workaround
+
+def joining_on_users(receiptsLoad, usersLoad):
+    usersIDTotal = set()
+    usersIDJoinable = set()
+    for u in usersLoad:
+        userID = u['_id']['$oid']
+        usersIDTotal.add(userID)
+        for r in receiptsLoad:
+            if 'userId' in r:
+                receiptsUser = r['userId']
+                if receiptsUser == userID:
+                    usersIDJoinable.add(userID)
+                    break
+
+    print(len(usersIDJoinable))
+    print(len(usersIDTotal))
+
+    receiptUserTotal = set()
+    receiptUserJoinable = set()
+    for r in receiptsLoad:
+        if 'userId' in r:
+            receiptsUser = r['userId']
+            receiptUserTotal.add(receiptsUser)
+            for u in usersLoad:
+                userID = u['_id']['$oid']
+                if userID == receiptsUser:
+                    receiptUserJoinable.add(receiptsUser)
+                    break
+
+    print(len(receiptUserJoinable))
+    print(len(receiptUserTotal))
+
+# output
+# 141
+# 212
+# 141
+# 258
+```
+
+These results are a bit more reasonable, but still not great. Of the 212 unique users in receipts.json, 141 of them can be joined on, and likewise of the 258 unique users in users.json. One thing that I accidentally discovered here is that there is a lot of duplicate data in users.json: a `wc -l users.json` tells us that there are 470 lines in users.json, and we know each line represents its own user. However, the above script shows us there are 258 unique oids in the file. That means that almost half of the data is duplicative, which is pretty bad. Further research would need to be done to check if the entire row is duplicative, or if IDs are being reused for multiple sets of demographics. However, that kind of investigation would best be done in SQL or with another tool that lets us easily group data, so I won't do it here. The query would look something like the below, in mySQL:
+
+```mysql
+SELECT _id, count(createdDate), count(active), count(role), count(state) 
+FROM users
+GROUP BY _id
+HAVING count(createdDate) >1 OR count(active) >1 OR count(role) >1 OR count(state) >1 
+```
+This should find any user with multiple active values, or roles, or lives in multiple states, or whatever other duplicate values we care about. If all we are dealing is with completely duplicative data, then that isn't too big a deal since the IDs are the same as well. However, if there are differences in demographic data, I would have to know what the intention there is: are we supposed to treat later rows as updates to previous rows with the same ID? If so, then we can potentially scrub out previous rows and only load the last one for each ID, if saving past demographics is not needed. 
+
 # Concerns with Reciepts
 
 ## Missing data keys in the schema
