@@ -2,6 +2,7 @@
 
 import json
 
+
 # load receipts data
 def load_data(filename):
     data = []
@@ -73,7 +74,7 @@ def header_formatting(receiptsLoad):
             elif type(x[key]) is not receipts_headers[key]:
                 print(errorString + key)
 
-
+# prints out additional keys in receipts[rewardsReceiptItemList] that are not documented anywhere
 def find_all_missing_receipt_keys(receiptsLoad):
     ReceiptItemList = set()
     for x in receiptsLoad:
@@ -86,6 +87,7 @@ def find_all_missing_receipt_keys(receiptsLoad):
     print(ReceiptItemList)
     return ReceiptItemList
 
+# checks for any logins that were before creation date
 def login_too_early_check(usersLoad):
     for x in usersLoad:
         createdDate = None
@@ -99,6 +101,84 @@ def login_too_early_check(usersLoad):
             if lastLogin - createdDate < 0:
                 print(x['_id'])
 
+# checks for if barcodes can be reasonably joined on 
+def joining_on_barcodes(receiptsLoad, brandsLoad):
+    RIBarCodesJoinable = set()
+    RIBarCodesTotal = set()
+    for r in receiptsLoad:
+        if 'rewardsReceiptItemList' in r:
+            for ri in r['rewardsReceiptItemList']:
+                try:
+                    receiptsBC = ri['barcode']
+                    RIBarCodesTotal.add(receiptsBC)
+                except KeyError:
+                    receiptsBC = None
+            for b in brandsLoad: #n^2, maybe we can do something better here?
+                try:
+                    brandBC = b['barcode']
+                    if receiptsBC == brandBC:
+                        RIBarCodesJoinable.add(receiptsBC)
+                        break
+                except KeyError:
+                    brandBC = None
+
+    print(len(RIBarCodesJoinable))
+    print(len(RIBarCodesTotal))
+
+    BBarCodesJoinable = set()
+    BBarCodesTotal = set()
+    for b in brandsLoad:
+        try:
+            brandBC = b['barcode']
+            BBarCodesTotal.add(brandBC)
+        except KeyError:
+            brandBC = None
+        for r in receiptsLoad:
+            if 'rewardsReceiptItemList' in r:
+                for ri in r['rewardsReceiptItemList']:
+                    try:
+                        receiptsBC = ri['barcode']
+                        if brandBC == receiptsBC:
+                            BBarCodesJoinable.add(brandBC)
+                            break
+                    except KeyError:
+                        receiptsBC = None
+
+    print(len(BBarCodesJoinable))
+    print(len(BBarCodesTotal))
+
+# checks for if _id/userId can be reasonably joined on 
+def joining_on_users(receiptsLoad, usersLoad):
+    usersIDTotal = set()
+    usersIDJoinable = set()
+    for u in usersLoad:
+        userID = u['_id']['$oid']
+        usersIDTotal.add(userID)
+        for r in receiptsLoad:
+            if 'userId' in r:
+                receiptsUser = r['userId']
+                if receiptsUser == userID:
+                    usersIDJoinable.add(userID)
+                    break
+
+    print(len(usersIDJoinable))
+    print(len(usersIDTotal))
+
+    receiptUserTotal = set()
+    receiptUserJoinable = set()
+    for r in receiptsLoad:
+        if 'userId' in r:
+            receiptsUser = r['userId']
+            receiptUserTotal.add(receiptsUser)
+            for u in usersLoad:
+                userID = u['_id']['$oid']
+                if userID == receiptsUser:
+                    receiptUserJoinable.add(receiptsUser)
+                    break
+
+    print(len(receiptUserJoinable))
+    print(len(receiptUserTotal))
+
 
 if __name__ == '__main__':
     RL = load_data('receipts.json')
@@ -108,3 +188,8 @@ if __name__ == '__main__':
 
     UL = load_data('users.json')
     login_too_early_check(UL)
+    joining_on_users(RL, UL)
+
+    BL = load_data('brands.json')
+    joining_on_barcodes(RL, BL)
+
