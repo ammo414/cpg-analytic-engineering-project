@@ -14,7 +14,7 @@ JOIN Receipts r
 WHERE YEAR(r.createDate) = YEAR(CURDATE() - INTERVAL 1 MONTH)
   AND MONTH(r.createDate) = MONTH(CURDATE() - INTERVAL 1 MONTH)  
 GROUP BY b.name
-ORDER BY count_last_month desc 
+ORDER BY count_last_month DESC 
 LIMIT 5
 
 
@@ -27,7 +27,7 @@ JOIN Receipts r
 WHERE YEAR(r.createDate) = YEAR(CURDATE() - INTERVAL 2 MONTH)
   AND MONTH(r.createDate) = MONTH(CURDATE() - INTERVAL 2 MONTH)  
 GROUP BY b.name
-ORDER BY count_last_month desc 
+ORDER BY count_month_before_last DESC 
 LIMIT 5
 ```
 
