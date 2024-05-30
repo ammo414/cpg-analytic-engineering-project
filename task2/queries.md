@@ -18,7 +18,7 @@ ORDER BY count_last_month desc
 LIMIT 5
 
 
-SELECT b.name, count(b._id) as count_last_month
+SELECT b.name, count(b._id) as count_month_before_last
 FROM Brand b
 JOIN ReceiptItems i
   ON b.barcode = i.barcode
