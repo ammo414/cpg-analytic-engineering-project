@@ -4,7 +4,7 @@ Below are the data quality concerns that I've found with the given JSON files. I
 # Sparsely Populated Joinable Keys
 
 ## Barcodes
-As part of the schema that I desgined, I decided to join Brands[barcode] to Receipts[rewardsReceiptItemList][barcode]. While that makes sense conceptually, it remains to be seen if the barcodes actually match up often for this to be a meaningful join once we load this data into a database. I wrote the following python script to confirm.
+As part of the schema that I designed, I decided to join Brands[barcode] to Receipts[rewardsReceiptItemList][barcode]. While that makes sense conceptually, it remains to be seen if the barcodes actually match up often for this to be a meaningful join once we load this data into a database. I wrote the following python script to confirm.
 
 ```Python
 import json
@@ -125,7 +125,7 @@ def joining_on_users(receiptsLoad, usersLoad):
 # 258
 ```
 
-These results are a bit more reasonable, but still not great. Of the 212 unique users in receipts.json, 141 of them can be joined on, and likewise of the 258 unique users in users.json. One thing that I accidentally discovered here is that there is a lot of duplicate data in users.json: a `wc -l users.json` tells us that there are 495 lines in users.json, and we know each line represents its own user. However, the above script shows us there are 258 unique oids in the file. That means that almost half of the data is duplicative, which is pretty bad. Further research would need to be done to check if the entire row is duplicative, or if IDs are being reused for multiple sets of demographics. However, that kind of investigation would best be done in SQL or with another tool that lets us easily group data, so I won't do it here. The query would look something like the below, in mySQL:
+These results are a bit more reasonable, but still not great. Of the 212 unique users in receipts.json, 141 of them can be joined on, and likewise of the 258 unique users in users.json. One thing that I accidentally discovered here is that there is a lot of duplicate data in users.json: a `wc -l users.json` in Bash tells us that there are 495 lines in users.json, and we know each line represents its own user. However, the above script shows us there are 258 unique oids in the file. That means that almost half of the data is duplicate, which is pretty bad. Further research would need to be done to check if the entire row is duplicative, or if IDs are being reused for multiple sets of demographics. However, that kind of investigation would best be done in SQL or with another tool that lets us easily group data, so I won't do it here. The query would look something like the below, in mySQL:
 
 ```mysql
 SELECT _id, count(createdDate), count(active), count(role), count(state) 
@@ -133,7 +133,7 @@ FROM users
 GROUP BY _id
 HAVING count(createdDate) >1 OR count(active) >1 OR count(role) >1 OR count(state) >1 
 ```
-This should find any user with multiple active values, or roles, or lives in multiple states, or whatever other duplicate values we care about. If all we are dealing is with completely duplicative data, then that isn't too big a deal since the IDs are the same as well. However, if there are differences in demographic data, I would have to know what the intention there is: are we supposed to treat later rows as updates to previous rows with the same ID? If so, then we can potentially scrub out previous rows and only load the last one for each ID, if saving past demographics is not needed. 
+This should find any user with multiple active values, or roles, or lives in multiple states, or whatever other duplicate values we care about. If all we are dealing with is completely duplicative data, then that isn't too big a deal since the IDs are the same as well, so the database should automatically ignore them during the loading process. However, if there are differences in demographic data, I would have to know what the intention there is: are we supposed to treat later rows as updates to previous rows with the same ID? If so, then we can potentially scrub out previous rows and only load the last one for each ID, if saving past demographics is not needed. This would help with performance during the load into the database.
 
 # Concerns with Reciepts
 
@@ -212,10 +212,10 @@ for key in barcode_dict:
 # 034100573065 ['034100573065']
 # 075925306254 ['075925306254']
 ```
-I found that the only barcode associated with multiple originalMetaBriteBarcodes is `4011`. If we can figure out what is so special about `4011`, then we can create a lookup table to store each `originalMetaBriteBarcode` and its associated barcode, and eliminate a column from `ReceiptItems`, as the relationship between the two keys is otherwise at most one-to-one.
+The only barcode associated with multiple originalMetaBriteBarcodes is `4011`. If we can figure out what is so special about `4011`, then we can create a lookup table to store each `originalMetaBriteBarcode` and its associated barcode, and eliminate a column from `ReceiptItems`, as the relationship between the two keys is otherwise at most one-to-one.
 
 ### What is so special about 4011?
-Once again, I took a look manually and found that a `barcode` of `4011` was often associated with a description of  `ITEM NOT FOUND`. It seems like `4011` is a placeholder barcode. I used the following Bash script to see if that is true.
+Once again, I took a look manually and found that a `barcode` of `4011` was often associated with a description of `ITEM NOT FOUND`. It seems like `4011` is a placeholder barcode. I used the following Bash script to see if that is true.
 
 ```bash
 grep -E '4011","description":.{20}' -o receipts.json
@@ -255,10 +255,10 @@ Unfortunately here, my hypothesis was not true. Here's a snippet of some of the 
 4011","description":"Yellow Bananas","di
 4011","description":"ITEM NOT FOUND","fi
 ```
-This barcode is also used for bananas and yellow bananas. Its still strange to me that the only descriptions in the dataset are 'Yellow Bananas', 'BANANAS', and 'ITEM NOT FOUND'. I would like to do some further research into what this barcode is meant to represent, as this data now seems pretty shoddy, but I unfortunately don't think the answers to my question is in the data itself. Instead, I would have to talk to a barcode expert to see if they know what is going on here. (Or I can Google '4011 barcode' and get the answer, but I still think that meeting up with an expert is the correct way to go for these kinds of things.)
+This barcode is also used for bananas and yellow bananas. Its still strange to me that the only descriptions in the dataset are 'Yellow Bananas', 'BANANAS', and 'ITEM NOT FOUND'. I would like to do some further research into what this barcode is meant to represent, as this data now seems pretty shoddy, but I unfortunately don't think the answers to my question are in the data itself. Instead, I would have to talk to a barcode expert to see if they know what is going on here. (Or I can Google '4011 barcode' and get the answer, but I still think that meeting up with an expert is the correct way to go for these kinds of things.)
 
 ## If Item Not Found, what do we do next?
-Speaking of `ITEM NOT FOUND`, it sounds like this data point should essentially flag this row for manual review so that the item can eventually be found. 'Receipts[rewardsReceiptItemList][needsFetchReview]' looks like it acts as that flag. I would expect this to be true for any item that has a description of 'ITEM NOT FOUND'. Unfortunately, that is not the case:
+Speaking of `ITEM NOT FOUND`, it sounds like this data point should essentially flag the row for manual review so that the item can eventually be found. 'Receipts[rewardsReceiptItemList][needsFetchReview]' looks like it acts as that flag. I would expect this value to be true for any item that has a description of 'ITEM NOT FOUND'. Unfortunately, that is not the case:
 
 ```bash 
 grep -E 'ITEM NOT FOUND".+needsFetchReview":true\}' receipts.json
@@ -266,15 +266,15 @@ grep -E 'ITEM NOT FOUND".+needsFetchReview":true\}' receipts.json
 # searches for strings that match the following pattern:
 # the string 'ITEM NOT FOUND".' followed by any number of characters followed by the string 'needsFetchReview":true}'
 ```
-returns no results. This seems like a gap to me, and I think that any time we have an "ITEM NOT FOUND' or something similar, we should be manually reviewing those items in hopes of reducing the overall number of 'ITEM NOT FOUND's that we see.
+returns no results. This seems like a gap to me, and I think that any time we have an 'ITEM NOT FOUND' or something similar, we should be manually reviewing those items in hopes of reducing the overall number of 'ITEM NOT FOUND's that we see.
 
 ## The dates are good, but I'm glad I checked
-I noticed that the dates are stored as integers and not as ISO dates. I guessed that they were Linux timestamps and was fortunately correct right off the bat. I figured it would be a good idea to confirm that none of the dates are particularly weird: nothing from too long ago or in the future. I wrote the following bash one-liner to confirm:
+I noticed that the dates are stored as integers and not as ISO dates. I guessed that they were Linux timestamps and was fortunately correct. I figured it would be a good idea to confirm that none of the dates are particularly weird: nothing from too long ago or in the future. I wrote the following bash one-liner to confirm:
 
 ```bash
 grep -E '"\$date":[0123456789]{13}' -o receipts.json | grep -E [0123456789]{10} -o | while read line; do date -d '@'$line; done > receiptsEpochTime'
 
-# searches for strings that are just 13 digits, pulls the first 10 of those digits (as I don't care about the milliseconds), adds an '@' in front of the number for the sake of formatting, transforms them into human readable dates via the GNU program, date, and pipes them into a file named receiptsEpochTime.
+# searches for strings that are just 13 digits, pulls the first 10 of those digits (I don't care about the milliseconds), adds an '@' in front of the number for the sake of formatting, transforms them into human readable dates via the GNU program, date, and pipes them into a file named receiptsEpochTime.
 ```
 
 With that `receiptsEpochTime`, I'm able to quickly `grep` for any year I want to search for, say 2020, with a `grep '2020' receiptsEpochTime`. I've confirmed that all dates are within 2017 and 2021, although there are very few 2017s compared to the rest.
@@ -315,7 +315,7 @@ for x in receiptsLoad:
                 print(errorString + key)
         elif key == 'totalSpent' or key == 'pointsEarned':
             try:
-                i = float(x[key])  # today I learned why decimals are stored as strings in JSON!
+                i = float(x[key])  # today I learned why decimals are stored as strings in JSON
             except ValueError:
                 print(errorString + key)
         elif type(x[key]) is not receipts_headers[key]:
@@ -326,7 +326,7 @@ Pretty much everything looks good here so I'm not going to harp on anything for 
 
 # Concerns with Brands
 ## There are a lot of test brands
-Looking manually at the JSON, we're immediately greeted with the word "test" everywhere on the screen, which seems wrong. We can find the total line count of the file with a `wc -l brands.json` and see that there are 1167 lines, and so, assuming one brand per line, that there are 1167 brands in the file. If we do a very naive search and line count of just the phrase 'test brand', using `grep 'test brand' brands.json | wc -l`, we get 428 results. That means that at least a third of our brands are test brands. While such data can be useful in testing and development situations, it shouldn't be entering production. Until we've investigated where this data is coming from, I would not load this data into a data warehouse.
+Looking manually at the JSON, we're immediately greeted with the word "test" everywhere on the screen, which seems wrong. We can find the total line count of the file with a `wc -l brands.json` and see that there are 1167 lines, and so, assuming one brand per line, that there are 1167 brands in the file. If we do a very naive search and line count of just the phrase 'test brand', using `grep 'test brand' brands.json | wc -l`, we get 428 results. That means that at least a third of our brands are test brands. While such data can be useful in testing and development situations, it shouldn't be entering production databases. Until we've investigated where this data is coming from, I would not load this data into a data warehouse.
 
 # Concerns with Users
 ## Are they test users?
