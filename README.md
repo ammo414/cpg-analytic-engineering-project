@@ -1,8 +1,8 @@
 
 ## Fetch Rewards Coding Exercise - Analytics Engineer
-In this exercise you will:
+In this exercise I:
 
-Demonstrate how you reason about data and how you communicate your understanding of a specific data set to others.
+Demonstrated how I reason about data and how I communicate my understanding of a specific data set to others.
 What are the requirements?
 
 * Review unstructured JSON data and diagram a new structured relational data model
@@ -10,17 +10,14 @@ What are the requirements?
 * Generate a query to capture data quality issues against the new structured relational data model
 * Write a short email or Slack message to the business stakeholder
 
-Please let us know which SQL dialect you are using and include any code, notes, etc.. that helped you develop your answers. Showing your work can only help you!
 ### First: Review Existing Unstructured Data and Diagram a New Structured Relational Data Model
 
 
-Review the 3 sample data files provided below. Develop a simplified, structured, relational diagram to represent how you would model the data in a data warehouse. The diagram should show each table’s fields and the joinable keys. You can use pencil and paper, readme, or any digital drawing or diagramming tool with which you are familiar. If you can upload the text, image, or diagram into a git repository and we can read it, we will review it!
+Review the 3 sample data files provided below. Develop a simplified, structured, relational diagram to represent how I would model the data in a data warehouse. The diagram should show each table’s fields and the joinable keys. 
 
 ### Second: Write queries that directly answer predetermined questions from a business stakeholder
 
-Write SQL queries against your new structured relational data model that answer at least two of the following bullet points below of your choosing. Commit them to the git repository along with the rest of the exercise.
-
-Note: When creating your data model be mindful of the other requests being made by the business stakeholder. If you can capture more than two bullet points in your model while keeping it clean, efficient, and performant, that benefits you as well as your team.
+Write SQL queries against my new structured relational data model that answer the following bullet points below.
 
 * What are the top 5 brands by receipts scanned for most recent month?
 * How does the ranking of the top 5 brands by receipts scanned for the recent month compare to the ranking for the previous month?
@@ -31,22 +28,20 @@ Note: When creating your data model be mindful of the other requests being made 
 
 ### Third: Evaluate Data Quality Issues in the Data Provided
 
-Using the programming language of your choice (SQL, Python, R, Bash, etc...) identify as many data quality issues as you can. We are not expecting a full blown review of all the data provided, but instead want to know how you explore and evaluate data of questionable provenance.
+Identify as many data quality issues as I can.
 
-Commit your code and findings to the git repository along with the rest of the exercise.
-Fourth: Communicate with Stakeholders
+### Fourth: Communicate with Stakeholders
 
-Construct an email or slack message that is understandable to a product or business leader who isn’t familiar with your day to day work. This part of the exercise should show off how you communicate and reason about data with others. Commit your answers to the git repository along with the rest of your exercise.
+Construct an email or slack message that is understandable to a product or business leader who isn’t familiar with my day to day work. This part of the exercise should show off how I communicate and reason about data with others.
 
-* What questions do you have about the data?
-* How did you discover the data quality issues?
-* What do you need to know to resolve the data quality issues?
-* What other information would you need to help you optimize the data assets you're trying to create?
-* What performance and scaling concerns do you anticipate in production and how do you plan to address them?
+* What questions do I have about the data?
+* How did I discover the data quality issues?
+* What do I need to know to resolve the data quality issues?
+* What other information would I need to optimize the data assets I am trying to create?
+* What performance and scaling concerns do I anticipate in production and how do I plan to address them?
 
 The Data
 Receipts Data Schema
-Download receipts.json.gz
 
     _id: uuid for this receipt
     bonusPointsEarned: Number of bonus points that were awarded upon receipt completion
@@ -65,7 +60,6 @@ Download receipts.json.gz
     userId: string id back to the User collection for the user who scanned the receipt
 
 Users Data Schema
-Download users.json.gz
 
     _id: user Id
     state: state abbreviation
@@ -75,7 +69,6 @@ Download users.json.gz
     active: indicates if the user is active; only Fetch will de-activate an account with this flag
 
 Brand Data Schema
-Download brands.json.gz
 
     _id: brand uuid
     barcode: the barcode on the item
@@ -85,5 +78,4 @@ Download brands.json.gz
     cpg: reference to CPG collection
     topBrand: Boolean indicator for whether the brand should be featured as a 'top brand'
     name: Brand name
-
 
