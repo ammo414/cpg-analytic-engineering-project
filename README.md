@@ -1,8 +1,7 @@
 
 ## Fetch Rewards Coding Exercise - Analytics Engineer
-In this exercise I:
+In this exercise I demonstrated how I reason about data and how I communicate my understanding of a specific data set to others.
 
-Demonstrated how I reason about data and how I communicate my understanding of a specific data set to others.
 What are the requirements?
 
 * Review unstructured JSON data and diagram a new structured relational data model
