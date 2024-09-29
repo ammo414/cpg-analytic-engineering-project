@@ -65,7 +65,7 @@ FROM Brand b
 JOIN ReceiptItems i
   on b.barcode = i.barcode
 JOIN Receipts r
-  on i._id =  r.rewardsReceiptItemListID
+  on i.receiptId =  r._id
 JOIN Users u
   on r.userId = i._id
 WHERE i.createdDate >= CURDATE() - INTERVAL (DAYOFMONTH(CURDATE() -1) DAY - INTERVAL 6 MONTH
