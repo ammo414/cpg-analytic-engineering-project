@@ -13,7 +13,3 @@ WHERE i.receiptId = \<id\>
 I wrote a Python script to find all the undocumented keys within `ReceiptItemList`, which I describe further in task 3 - data quality issues. There's no guarantee that this sample of data has all the keys, but for the sake of this exercise I modeled my database under the assumption that this sample does contain all the keys. One of the keys that does show up consistently is `barcode`, which is fortunately also a key in `Brands`, and can likely be used as a secondary key in `Brands`. This means that we can join `Brands.barcode` on `ReceiptItems.barcode`, and then `ReceiptItems._id` on `Receipt.rewardsReceiptItemList` as needed.
 
 One final thing to note is that I typed the date columns (`createDate`, `dateScanned`, etc.) as datetimes even though they are stored as Unix timestamps, that is, integers, in the JSON data. I expect this data to be transformed to a human readable and SQL friendly format during the transformation process to make things easier for folks consuming the data downstream of us. Similarly, I typed the price columns as floats even though they are currently strings. I am not sure this is correct, as I only have a basic understanding of floating point arithmetic and the issues involved with loading and transforning decimal data from one format to another. I do believe that storing prices as floats will allow for better mathematical manipulation downstream, though.
-
-
-
-This will require me to rewrite my queries for question 5 and 6 as well.
