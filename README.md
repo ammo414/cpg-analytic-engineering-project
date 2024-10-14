@@ -1,5 +1,5 @@
 
-## Analytics Engineering Projeect -
+## Analytics Engineering Project -
 In this exercise I demonstrated how I reason about data and how I communicate my understanding of a specific data set to others. I accomplish the following tasks:
 
 * Review unstructured JSON data and diagram a new structured relational data model
