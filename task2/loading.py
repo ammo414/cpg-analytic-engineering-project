@@ -1,11 +1,7 @@
-# The below creates rows that I can manually insert into a databse. I would *NEVER* do such a thing 
-# with production data. The below loading functions are susceptible to SQL injections, requires me to manually 
-# turn python "None"s into SQL "NULL"s, isn't guaranteed to format dates correctly, etc. But it does let me play with 
-# the data enough to test my queries.
-
-# In production, I would use either an ORM like sqlalchemy or a SQL connector like the mysql.connector library.
+# The below creates csvs that can be loaded into a database. In production, I would use either an ORM like sqlalchemy or a SQL connector like the mysql.connector library.
 
 import json
+import csv
 from time import strftime, localtime
 
 
@@ -19,48 +15,53 @@ def load_data(filename):
 
 
 def create_receipt_table(receiptLoad):
-    for x in receiptLoad:
-        _id = x['_id']['$oid']
-        epochTime = x['createDate']['$date']
-        createDate = strftime('%Y-%m-%d %H:%M:%S', localtime(epochTime/1000))
-        rewardsReceiptItemListID = _id  # deciding to use the same ID for both as a POC
-        try:
-            totalSpent = x['totalSpent']
-        except KeyError:
-            totalSpent = None
-        rewardsReceiptStatus = x['rewardsReceiptStatus']
-        try:
-            purchasedItemCount = x['purchasedItemCount']
-        except KeyError:
-            purchasedItemCount = None
-        row = f'("{_id}","{createDate}","{rewardsReceiptItemListID}",{totalSpent},"{rewardsReceiptStatus}","{purchasedItemCount}"),'
-        print(row)
+    with open('receipts.csv', "w") as file:
+        filewriter = csv.writer(file, delimiter="\t")
+        for x in receiptLoad:
+            _id = x['_id']['$oid']
+            epochTime = x['createDate']['$date']
+            createDate = strftime('%Y-%m-%d %H:%M:%S', localtime(epochTime/1000))
+            rewardsReceiptItemListID = _id  # deciding to use the same ID for both as a POC
+            try:
+                totalSpent = x['totalSpent']
+            except KeyError:
+                totalSpent = 0
+            rewardsReceiptStatus = x['rewardsReceiptStatus']
+            try:
+                purchasedItemCount = x['purchasedItemCount']
+            except KeyError:
+                purchasedItemCount = None
+            row = [_id, createDate, totalSpent, rewardsReceiptStatus, purchasedItemCount]
+            
+            filewriter.writerow(row)
 
 
 def create_rec_items_table(receiptLoad):
     # for performance reasons, this could technically be done inside the above function. but that isn't
     # readable or maintainable
-    for x in receiptLoad:
-        _id = x['_id']['$oid']
-        if 'rewardsReceiptItemList' in x:
-            for receiptItems in x['rewardsReceiptItemList']:
-                if 'barcode' in receiptItems:
-                    barcode = receiptItems['barcode']
-                else:
-                    barcode = None
-
-        row = f'("{_id}",{barcode}),'
-        print(row)
+    with open('receipts_item.csv', "w") as file:
+        filewriter = csv.writer(file, delimiter="\t")
+        for x in receiptLoad:
+            receiptId = x['_id']['$oid']
+            if 'rewardsReceiptItemList' in x:
+                for itr, receiptItems in enumerate(x['rewardsReceiptItemList']):
+                    if 'barcode' in receiptItems:
+                        barcode = receiptItems['barcode']
+                        _id = str(receiptId) + str(itr+1)
+                        row = [_id, barcode, receiptId]
+                        filewriter.writerow(row)
 
 
 def create_brands_table(brandsLoad):
-    for x in brandsLoad:
-        _id = x['_id']['$oid']
-        barcode = x['barcode']
-        name = x['name']
+    with open('brands.csv', "w") as file:
+        filewriter = csv.writer(file, delimiter="\t")
+        for x in brandsLoad:
+            _id = x['_id']['$oid']
+            barcode = x['barcode']
+            name = x['name']
 
-        row = f'("{_id}",{barcode},"{name}"),'
-        print(row)
+            row = [_id, barcode, name]
+            filewriter.writerow(row)
 
 
 RL = load_data('receipts.json')
@@ -69,4 +70,3 @@ create_rec_items_table(RL)
 
 BL = load_data('brands.json')
 create_brands_table(BL)
-
